@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>HDI Predictor — Human Development Index Estimator</title>
+<meta name="description" content="Predict a country's Human Development Index score and category from life expectancy, schooling, and income using a Linear Regression model.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:wght@500;600&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+
+<nav class="nav">
+  <div class="wrap">
+    <a class="nav-brand" href="#top">
+      <span class="dot"></span>
+      HDI Predictor
+    </a>
+    <ul class="nav-links">
+      <li><a href="#what-is-hdi">What is HDI</a></li>
+      <li><a href="#how-it-works">How it works</a></li>
+      <li><a href="#scenarios">Examples</a></li>
+    </ul>
+    <a class="nav-cta" href="#predict">Try it</a>
+  </div>
+</nav>
+
+<header class="hero" id="top">
+  <div class="wrap">
+    <div>
+      <p class="eyebrow">Machine Learning · Flask · Linear Regression</p>
+      <h1>Estimate a country's <em>human development</em> from four numbers.</h1>
+      <p class="hero-sub">
+        This tool predicts the Human Development Index (HDI) — the UN's
+        composite measure of health, education, and living standards —
+        from life expectancy, schooling, and income figures, using a
+        Linear Regression model trained on cross-country data.
+      </p>
+      <div class="hero-actions">
+        <a class="btn btn-primary" href="#predict">Run a prediction →</a>
+        <a class="btn btn-ghost" href="#what-is-hdi">What is HDI?</a>
+      </div>
+      <div class="hero-stats">
+        <div class="hero-stat">
+          <div class="num">4</div>
+          <div class="label">input indicators</div>
+        </div>
+        <div class="hero-stat">
+          <div class="num">1</div>
+          <div class="label">regression model</div>
+        </div>
+        <div class="hero-stat">
+          <div class="num">4</div>
+          <div class="label">development tiers</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="hero-panel">
+      <p class="panel-title">The Development Spectrum</p>
+      <div class="spectrum-bar" aria-hidden="true">
+        <div class="spectrum-marker" style="left: 78%;"></div>
+      </div>
+      <div class="spectrum-scale">
+        <span>0.00</span>
+        <span>0.55</span>
+        <span>0.70</span>
+        <span>0.80</span>
+        <span>1.00</span>
+      </div>
+      <div class="spectrum-legend">
+        <div class="item"><span class="swatch sw-low"></span>Low</div>
+        <div class="item"><span class="swatch sw-medium"></span>Medium</div>
+        <div class="item"><span class="swatch sw-high"></span>High</div>
+        <div class="item"><span class="swatch sw-vhigh"></span>Very High</div>
+      </div>
+    </div>
+  </div>
+</header>
+
+<section id="what-is-hdi">
+  <div class="wrap">
+    <div class="explainer-grid">
+      <div>
+        <p class="eyebrow">The Index</p>
+        <h3 style="font-size:24px; margin-top:10px; font-family: var(--font-display);">What is the Human Development Index?</h3>
+        <p>
+          The HDI is a summary measure published by the United Nations
+          Development Programme (UNDP) that ranks countries by more than
+          just income. It condenses three dimensions of human wellbeing
+          into a single score between 0 and 1, making it possible to
+          compare long-term progress across very different economies.
+        </p>
+        <div class="pillars">
+          <div class="pillar"><span class="tag">Health</span> Life expectancy at birth</div>
+          <div class="pillar"><span class="tag">Education</span> Mean and expected years of schooling</div>
+          <div class="pillar"><span class="tag">Income</span> Gross National Income (GNI) per capita</div>
+        </div>
+      </div>
+      <div>
+        <p class="eyebrow">The Stakes</p>
+        <h3 style="font-size:24px; margin-top:10px; font-family: var(--font-display);">Why HDI matters</h3>
+        <p>
+          GDP alone can hide how ordinary people actually live — a
+          resource-rich country can be wealthy on paper while its
+          citizens have short lifespans or little access to education.
+          HDI corrects for this by rewarding countries that convert
+          income into longer, healthier, more educated lives.
+        </p>
+        <p style="margin-top:14px;">
+          Governments, researchers, and international organizations use
+          HDI to track development progress, compare policy outcomes,
+          and target investment where it is needed most.
+        </p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="section-alt">
+  <div class="wrap">
+    <div class="section-head">
+      <p class="eyebrow">Built on Four Signals</p>
+      <h2>What the model looks at</h2>
+      <p>Each prediction is built from the same four indicators the UNDP itself relies on, feeding a Linear Regression model trained on historical, cross-country data.</p>
+    </div>
+    <div class="cards-grid">
+      <div class="card">
+        <div class="icon">01</div>
+        <h3>Life Expectancy</h3>
+        <p>Average number of years a newborn is expected to live, given current mortality patterns. A proxy for healthcare quality and living conditions.</p>
+      </div>
+      <div class="card">
+        <div class="icon">02</div>
+        <h3>Mean Years of Schooling</h3>
+        <p>The average number of years of education completed by adults aged 25 and older — a backward-looking measure of educational attainment.</p>
+      </div>
+      <div class="card">
+        <div class="icon">03</div>
+        <h3>Expected Years of Schooling</h3>
+        <p>The years of schooling a child entering school today can expect to receive — a forward-looking measure of access to education.</p>
+      </div>
+      <div class="card">
+        <div class="icon">04</div>
+        <h3>GNI per Capita</h3>
+        <p>Gross National Income per person, adjusted for purchasing power — a measure of the average material standard of living.</p>
+      </div>
+      <div class="card">
+        <div class="icon">Σ</div>
+        <h3>Linear Regression</h3>
+        <p>The four indicators are standardized and combined through a trained Linear Regression model to produce a single continuous HDI estimate.</p>
+      </div>
+      <div class="card">
+        <div class="icon">▤</div>
+        <h3>Four Categories</h3>
+        <p>The predicted score is mapped to a UNDP development tier — Low, Medium, High, or Very High — using the standard official thresholds.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="how-it-works">
+  <div class="wrap">
+    <div class="section-head">
+      <p class="eyebrow">Under the Hood</p>
+      <h2>How a prediction is made</h2>
+      <p>The same pipeline used to train the model runs — in miniature — every time you submit the form below.</p>
+    </div>
+    <div class="workflow">
+      <div class="workflow-step">
+        <div class="num">1</div>
+        <h3>Collect indicators</h3>
+        <p>The dataset combines life expectancy, schooling, and income figures for a cross-section of countries, sourced from open HDI datasets.</p>
+      </div>
+      <div class="workflow-step">
+        <div class="num">2</div>
+        <h3>Clean and prepare</h3>
+        <p>Missing values are filled using column means, and the four features are selected as inputs with HDI as the prediction target.</p>
+      </div>
+      <div class="workflow-step">
+        <div class="num">3</div>
+        <h3>Scale features</h3>
+        <p>A StandardScaler normalizes each indicator so that no single feature — like GNI, which spans a much wider range than schooling — dominates the model.</p>
+      </div>
+      <div class="workflow-step">
+        <div class="num">4</div>
+        <h3>Train Linear Regression</h3>
+        <p>A Linear Regression model learns the relationship between the scaled indicators and the historical HDI score, evaluated with RMSE and R².</p>
+      </div>
+      <div class="workflow-step">
+        <div class="num">5</div>
+        <h3>Predict and classify</h3>
+        <p>Your submitted values are scaled with the same fitted scaler, passed through the trained model, and the resulting score is mapped to a development category.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="predict-section" id="predict">
+  <div class="wrap">
+    <div class="predict-grid">
+      <div class="predict-intro">
+        <p class="eyebrow">Try the Model</p>
+        <h2>Predict an HDI score</h2>
+        <p>Enter plausible values for a country — real or hypothetical — and the model will return an estimated HDI score and its development category.</p>
+        <ul>
+          <li>Values are validated before being sent to the model.</li>
+          <li>The score is clamped to the valid 0–1 HDI range.</li>
+          <li>Results include an interpretation, not just a number.</li>
+        </ul>
+      </div>
+
+      <div class="form-card">
+        {% if error %}
+        <div class="error-banner">{{ error }}</div>
+        {% endif %}
+
+        <form action="/predict" method="POST" novalidate>
+          <div class="field">
+            <label for="life_expectancy">Life Expectancy <span class="hint">years</span></label>
+            <input type="number" step="0.1" min="0" max="100"
+                   id="life_expectancy" name="life_expectancy"
+                   placeholder="e.g. 78.5" required>
+          </div>
+
+          <div class="field-row">
+            <div class="field">
+              <label for="mean_schooling">Mean Schooling <span class="hint">years</span></label>
+              <input type="number" step="0.1" min="0" max="25"
+                     id="mean_schooling" name="mean_schooling"
+                     placeholder="e.g. 10.2" required>
+            </div>
+
+            <div class="field">
+              <label for="expected_schooling">Expected Schooling <span class="hint">years</span></label>
+              <input type="number" step="0.1" min="0" max="25"
+                     id="expected_schooling" name="expected_schooling"
+                     placeholder="e.g. 15.0" required>
+            </div>
+          </div>
+
+          <div class="field">
+            <label for="gni">GNI per Capita <span class="hint">PPP $</span></label>
+            <input type="number" step="1" min="0" max="200000"
+                   id="gni" name="gni"
+                   placeholder="e.g. 25000" required>
+          </div>
+
+          <button type="submit">Predict HDI Score</button>
+        </form>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="scenarios">
+  <div class="wrap">
+    <div class="section-head">
+      <p class="eyebrow">Reference Points</p>
+      <h2>Three example scenarios</h2>
+      <p>Illustrative country profiles across the development spectrum — useful for sanity-checking how the model responds to different inputs.</p>
+    </div>
+    <div class="scenario-grid">
+      <div class="scenario-card">
+        <span class="badge badge-vhigh">Very High HDI</span>
+        <p class="country">Advanced Economy</p>
+        <p class="score">~0.948 predicted</p>
+        <div class="scenario-metrics">
+          <div class="row"><span>Life expectancy</span><span>82.0</span></div>
+          <div class="row"><span>Mean schooling</span><span>13.5</span></div>
+          <div class="row"><span>Expected schooling</span><span>17.0</span></div>
+          <div class="row"><span>GNI per capita</span><span>$55,000</span></div>
+        </div>
+      </div>
+
+      <div class="scenario-card">
+        <span class="badge badge-medium">Medium HDI</span>
+        <p class="country">Emerging Economy</p>
+        <p class="score">~0.629 predicted</p>
+        <div class="scenario-metrics">
+          <div class="row"><span>Life expectancy</span><span>68.0</span></div>
+          <div class="row"><span>Mean schooling</span><span>7.5</span></div>
+          <div class="row"><span>Expected schooling</span><span>11.0</span></div>
+          <div class="row"><span>GNI per capita</span><span>$8,000</span></div>
+        </div>
+      </div>
+
+      <div class="scenario-card">
+        <span class="badge badge-low">Low HDI</span>
+        <p class="country">Developing Economy</p>
+        <p class="score">~0.428 predicted</p>
+        <div class="scenario-metrics">
+          <div class="row"><span>Life expectancy</span><span>58.0</span></div>
+          <div class="row"><span>Mean schooling</span><span>4.0</span></div>
+          <div class="row"><span>Expected schooling</span><span>7.0</span></div>
+          <div class="row"><span>GNI per capita</span><span>$1,800</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<footer class="footer">
+  <div class="wrap">
+    <span>HDI Predictor — a Flask &amp; Scikit-learn portfolio project.</span>
+    <span>Built with Linear Regression · Data Science &amp; ML pipeline</span>
+  </div>
+</footer>
+
+</body>
+</html>
