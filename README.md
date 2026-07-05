@@ -1,3 +1,13 @@
+---
+title: Hdi Predictor
+emoji: 🌍
+colorFrom: purple
+colorTo: red
+sdk: docker
+pinned: false
+license: mit
+---
+
 # HDI Predictor
 
 A machine learning web application that predicts a country's **Human
