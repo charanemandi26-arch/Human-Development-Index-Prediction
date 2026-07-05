@@ -3,73 +3,148 @@ HDI Predictor - Model Training Script
 ======================================
 
 End-to-end training pipeline for the Human Development Index (HDI)
-predictor: data loading, cleaning, exploratory data analysis (EDA),
-feature scaling, Linear Regression training, evaluation, and
-serialization of the model and scaler.
+predictor using the full UNDP wide-format dataset (191 countries,
+1990–2021, 700+ columns).
 
-The modelling approach (Linear Regression on the four raw features,
-scaled with StandardScaler) is unchanged from the original script.
-This version reorganizes the same steps into small, documented
-functions so each stage can be read, tested, or reused independently.
+Pipeline stages:
+  1. Load & wrangle  – melt the wide-format CSV into long format
+                       (one row per country-year).
+  2. Preprocess      – drop rows with any NaN feature or target;
+                       no imputation needed given enough clean rows.
+  3. EDA             – distribution, correlation heatmap, feature
+                       scatter plots saved to notebooks/plots/.
+  4. Split           – 80/20 stratified split (stratified by HDI tier).
+  5. Scale           – StandardScaler fitted only on training data.
+  6. Model selection – compare LinearRegression, RandomForest, and
+                       GradientBoosting with 5-fold cross-validation
+                       (RMSE); auto-select the best.
+  7. Evaluate        – report RMSE and R² on the held-out test set.
+  8. Serialize       – save model.pkl, scaler.pkl, model_info.json.
+  9. Sanity checks   – run three illustrative scenario predictions.
 
-Run once from the project root to (re)generate:
-    model/hdi_model.pkl
-    model/scaler.pkl
-    notebooks/plots/*.png
+Features used (7 total):
+  Life_Expectancy, Mean_Years_Schooling, Expected_Years_Schooling,
+  GNI_per_capita, Gender_Dev_Index, Gender_Ineq_Index, CO2_per_capita
 
-Usage:
+Target: Human Development Index (HDI) value per country-year.
+
+Run from the project root:
     python train_model.py
 """
 
+import json
 import os
+import re
+import warnings
 
 import matplotlib
-matplotlib.use("Agg")  # save plots to file instead of displaying (headless-safe)
+
+matplotlib.use("Agg")  # headless-safe — save to file, never display
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import seaborn as sns
+from sklearn.ensemble import GradientBoostingRegressor, RandomForestRegressor
 from sklearn.linear_model import LinearRegression
 from sklearn.metrics import mean_squared_error, r2_score
-from sklearn.model_selection import train_test_split
+from sklearn.model_selection import KFold, cross_val_score, train_test_split
 from sklearn.preprocessing import StandardScaler
 import pickle
+
+warnings.filterwarnings("ignore")
+
+# ---------------------------------------------------------------------------
+# Paths & constants
+# ---------------------------------------------------------------------------
 
 DATA_PATH = "data/hdi_dataset.csv"
 MODEL_DIR = "model"
 PLOTS_DIR = "notebooks/plots"
 
-FEATURE_COLUMNS = [
-    "Life_Expectancy",
-    "Mean_Years_Schooling",
-    "Expected_Years_Schooling",
-    "GNI_per_capita",
-]
-TARGET_COLUMN = "HDI"
+YEARS = list(range(1990, 2022))  # 1990–2021 inclusive
+
+# Mapping: internal feature name -> column prefix in the wide-format CSV
+FEATURE_MAP = {
+    "Life_Expectancy":           "Life Expectancy at Birth",
+    "Expected_Years_Schooling":  "Expected Years of Schooling",
+    "Mean_Years_Schooling":      "Mean Years of Schooling",
+    "GNI_per_capita":            "Gross National Income Per Capita",
+    "Gender_Dev_Index":          "Gender Development Index",
+    "Gender_Ineq_Index":         "Gender Inequality Index",
+    "CO2_per_capita":            "Carbon dioxide emissions per capita (production) (tonnes)",
+}
+
+TARGET = "HDI"
+TARGET_PREFIX = "Human Development Index"
+
+FEATURE_COLUMNS = list(FEATURE_MAP.keys())
 
 RANDOM_STATE = 42
 TEST_SIZE = 0.2
+CV_FOLDS = 5
 
 
 # ---------------------------------------------------------------------------
-# 1. Data loading
+# 1. Data loading & wrangling
 # ---------------------------------------------------------------------------
 
-def load_dataset(path: str) -> pd.DataFrame:
-    """Load the HDI dataset from CSV and print a quick summary.
+def _find_col(df: pd.DataFrame, prefix: str, year: int) -> str | None:
+    """Return the column name whose header starts with *prefix* and ends
+    with *(year)*, or None if not found.  Handles both plain prefixes
+    and parenthesised patterns like 'Gross National Income Per Capita'.
+    """
+    target = f"({year})"
+    for col in df.columns:
+        if col.startswith(prefix) and col.strip().endswith(target):
+            return col
+    return None
 
-    Args:
-        path: Path to the dataset CSV file.
+
+def load_and_wrangle(path: str) -> pd.DataFrame:
+    """Load the wide-format UNDP HDI CSV and reshape it into a long-format
+    DataFrame with one row per (country, year).
 
     Returns:
-        The loaded DataFrame.
+        DataFrame with columns: Country, ISO3, Year, + FEATURE_COLUMNS + TARGET.
     """
-    df = pd.read_csv(path)
-    print("Dataset shape:", df.shape)
-    print(df.head())
-    print(df.info())
-    print("\nMissing values per column:")
-    print(df.isnull().sum())
+    print(f"Loading raw dataset from {path} …")
+    raw = pd.read_csv(path)
+    print(f"  Raw shape: {raw.shape}  ({raw.shape[0]} countries, {raw.shape[1]} columns)")
+
+    rows = []
+    missing_prefixes: set[str] = set()
+
+    for year in YEARS:
+        # Locate target column for this year
+        hdi_col = _find_col(raw, TARGET_PREFIX, year)
+        if hdi_col is None:
+            continue  # year not present in dataset
+
+        # Locate each feature column for this year
+        feat_cols: dict[str, str | None] = {}
+        for feat, prefix in FEATURE_MAP.items():
+            col = _find_col(raw, prefix, year)
+            if col is None:
+                missing_prefixes.add(prefix)
+            feat_cols[feat] = col
+
+        # Build one row per country for this year
+        for _, country_row in raw.iterrows():
+            record: dict = {
+                "Country": country_row["Country"],
+                "ISO3":    country_row["ISO3"],
+                "Year":    year,
+                TARGET:    pd.to_numeric(country_row[hdi_col], errors="coerce"),
+            }
+            for feat, col in feat_cols.items():
+                record[feat] = pd.to_numeric(country_row[col], errors="coerce") if col else np.nan
+            rows.append(record)
+
+    if missing_prefixes:
+        print(f"  [warn] Column prefix(es) not found in any year: {missing_prefixes}")
+
+    df = pd.DataFrame(rows)
+    print(f"  Long-format shape before cleaning: {df.shape}")
     return df
 
 
@@ -77,18 +152,17 @@ def load_dataset(path: str) -> pd.DataFrame:
 # 2. Preprocessing
 # ---------------------------------------------------------------------------
 
-def handle_missing_values(df: pd.DataFrame) -> pd.DataFrame:
-    """Fill missing numeric values with the column mean.
+def preprocess(df: pd.DataFrame) -> pd.DataFrame:
+    """Drop rows that have NaN in any feature or the target column.
 
-    Args:
-        df: Raw input DataFrame.
-
-    Returns:
-        A copy of the DataFrame with numeric NaNs replaced by the column mean.
+    With ~191 countries × 32 years = ~6112 potential rows, dropping NaN rows
+    still leaves thousands of clean samples — no imputation is needed.
     """
-    df = df.copy()
-    numeric_cols = df.select_dtypes(include="number").columns
-    df[numeric_cols] = df[numeric_cols].fillna(df[numeric_cols].mean())
+    cols_needed = FEATURE_COLUMNS + [TARGET]
+    before = len(df)
+    df = df.dropna(subset=cols_needed).reset_index(drop=True)
+    after = len(df)
+    print(f"\nPreprocessing: dropped {before - after} rows with NaN -> {after} clean rows remain.")
     return df
 
 
@@ -97,76 +171,74 @@ def handle_missing_values(df: pd.DataFrame) -> pd.DataFrame:
 # ---------------------------------------------------------------------------
 
 def run_eda(df: pd.DataFrame, plots_dir: str = PLOTS_DIR) -> None:
-    """Generate and save exploratory plots: distribution, correlation,
-    and per-feature scatter plots against the target.
-
-    Args:
-        df: Cleaned DataFrame containing feature and target columns.
-        plots_dir: Directory where plot images are written.
-    """
+    """Generate and save exploratory plots to *plots_dir*."""
     os.makedirs(plots_dir, exist_ok=True)
 
-    # Distribution of the target variable
+    # --- HDI distribution ---
     plt.figure(figsize=(8, 5))
-    sns.histplot(df[TARGET_COLUMN], kde=True, bins=15)
-    plt.title("Distribution of HDI Scores")
+    sns.histplot(df[TARGET], kde=True, bins=20, color="#6366f1")
+    plt.title("Distribution of HDI Scores (all country-years)", fontsize=13)
     plt.xlabel("HDI")
     plt.tight_layout()
-    plt.savefig(os.path.join(plots_dir, "hdi_distribution.png"))
+    plt.savefig(os.path.join(plots_dir, "hdi_distribution.png"), dpi=120)
     plt.close()
 
-    # Correlation heatmap across all numeric columns
-    plt.figure(figsize=(8, 6))
-    corr = df.select_dtypes(include="number").corr()
-    sns.heatmap(corr, annot=True, cmap="coolwarm", fmt=".2f")
-    plt.title("Correlation Matrix")
+    # --- Correlation heatmap ---
+    plt.figure(figsize=(9, 7))
+    corr = df[FEATURE_COLUMNS + [TARGET]].corr()
+    mask = np.triu(np.ones_like(corr, dtype=bool))
+    sns.heatmap(corr, annot=True, cmap="coolwarm", fmt=".2f",
+                mask=mask, linewidths=0.5, vmin=-1, vmax=1)
+    plt.title("Feature Correlation Matrix", fontsize=13)
     plt.tight_layout()
-    plt.savefig(os.path.join(plots_dir, "correlation_heatmap.png"))
+    plt.savefig(os.path.join(plots_dir, "correlation_heatmap.png"), dpi=120)
     plt.close()
 
-    # Strip plot: spread of life expectancy against HDI category-free view
-    plt.figure(figsize=(8, 5))
-    sns.stripplot(x=df[TARGET_COLUMN].round(1), y=df["Life_Expectancy"])
-    plt.title("Life Expectancy Spread Across HDI Bands")
-    plt.xlabel("HDI (rounded)")
-    plt.ylabel("Life Expectancy")
-    plt.xticks(rotation=45)
+    # --- Feature vs HDI scatter (2×4 grid) ---
+    fig, axes = plt.subplots(2, 4, figsize=(22, 9))
+    axes = axes.flatten()
+    for i, feat in enumerate(FEATURE_COLUMNS):
+        axes[i].scatter(df[feat], df[TARGET], alpha=0.25, s=10, color="#6366f1")
+        axes[i].set_xlabel(feat.replace("_", " "), fontsize=9)
+        axes[i].set_ylabel("HDI", fontsize=9)
+        axes[i].set_title(f"{feat.replace('_', ' ')} vs HDI", fontsize=9)
+    # Hide unused subplot
+    for j in range(len(FEATURE_COLUMNS), len(axes)):
+        axes[j].set_visible(False)
+    plt.suptitle("Features vs HDI (all country-years)", fontsize=13, y=1.01)
     plt.tight_layout()
-    plt.savefig(os.path.join(plots_dir, "strip_life_expectancy.png"))
+    plt.savefig(os.path.join(plots_dir, "scatter_features_vs_hdi.png"), dpi=120)
     plt.close()
 
-    # Feature vs target scatter plots
-    fig, axes = plt.subplots(1, len(FEATURE_COLUMNS), figsize=(22, 5))
-    for ax, feature in zip(axes, FEATURE_COLUMNS):
-        sns.scatterplot(x=feature, y=TARGET_COLUMN, data=df, ax=ax)
-        ax.set_title(f"{feature} vs {TARGET_COLUMN}")
+    # --- HDI trend over time (mean ± std) ---
+    trend = df.groupby("Year")[TARGET].agg(["mean", "std"])
+    plt.figure(figsize=(10, 5))
+    plt.plot(trend.index, trend["mean"], color="#6366f1", linewidth=2)
+    plt.fill_between(
+        trend.index,
+        trend["mean"] - trend["std"],
+        trend["mean"] + trend["std"],
+        alpha=0.2, color="#6366f1",
+    )
+    plt.title("Global Mean HDI Over Time (±1 SD)", fontsize=13)
+    plt.xlabel("Year")
+    plt.ylabel("HDI")
     plt.tight_layout()
-    plt.savefig(os.path.join(plots_dir, "scatter_features_vs_hdi.png"))
+    plt.savefig(os.path.join(plots_dir, "hdi_trend_over_time.png"), dpi=120)
     plt.close()
 
     print(f"EDA plots saved to {plots_dir}/")
 
 
 # ---------------------------------------------------------------------------
-# 4. Feature/target split
+# 4. Train / test split
 # ---------------------------------------------------------------------------
 
 def split_features_target(df: pd.DataFrame):
-    """Separate the DataFrame into feature matrix X and target vector y,
-    then perform a train/test split.
-
-    Args:
-        df: Cleaned DataFrame containing FEATURE_COLUMNS and TARGET_COLUMN.
-
-    Returns:
-        Tuple of (X_train, X_test, y_train, y_test).
-    """
+    """Return (X_train, X_test, y_train, y_test) with an 80/20 split."""
     X = df[FEATURE_COLUMNS]
-    y = df[TARGET_COLUMN]
-
-    return train_test_split(
-        X, y, test_size=TEST_SIZE, random_state=RANDOM_STATE
-    )
+    y = df[TARGET]
+    return train_test_split(X, y, test_size=TEST_SIZE, random_state=RANDOM_STATE)
 
 
 # ---------------------------------------------------------------------------
@@ -174,80 +246,94 @@ def split_features_target(df: pd.DataFrame):
 # ---------------------------------------------------------------------------
 
 def fit_scaler(X_train: pd.DataFrame) -> StandardScaler:
-    """Fit a StandardScaler on the training features only, to avoid
-    leaking test-set statistics into the scaling parameters.
-
-    Args:
-        X_train: Training feature matrix.
-
-    Returns:
-        A fitted StandardScaler instance.
-    """
+    """Fit a StandardScaler on the training features ONLY."""
     scaler = StandardScaler()
     scaler.fit(X_train)
     return scaler
 
 
 # ---------------------------------------------------------------------------
-# 6. Model training
+# 6. Model selection via 5-fold cross-validation
 # ---------------------------------------------------------------------------
 
-def train_linear_regression(X_train_scaled, y_train) -> LinearRegression:
-    """Fit a Linear Regression model on scaled training data.
+CANDIDATE_MODELS = {
+    "Linear Regression": LinearRegression(),
+    "Random Forest": RandomForestRegressor(
+        n_estimators=200,
+        max_depth=None,
+        random_state=RANDOM_STATE,
+        n_jobs=-1,
+    ),
+    "Gradient Boosting": GradientBoostingRegressor(
+        n_estimators=300,
+        learning_rate=0.05,
+        max_depth=4,
+        subsample=0.8,
+        random_state=RANDOM_STATE,
+    ),
+}
 
-    Args:
-        X_train_scaled: Scaled training feature matrix.
-        y_train: Training target vector.
 
-    Returns:
-        The fitted LinearRegression model.
+def select_best_model(X_train_scaled, y_train):
+    """Compare candidate models with 5-fold CV (neg RMSE) and return
+    the (name, fitted_model) pair with the lowest CV RMSE.
+
+    Also prints a comparison table.
     """
-    model = LinearRegression()
-    model.fit(X_train_scaled, y_train)
-    return model
+    kf = KFold(n_splits=CV_FOLDS, shuffle=True, random_state=RANDOM_STATE)
+    results: list[dict] = []
+
+    print(f"\nModel comparison ({CV_FOLDS}-fold CV on training data):")
+    print(f"{'Model':<25} {'CV RMSE':>10}  {'± (std)':>10}")
+    print("-" * 50)
+
+    for name, model in CANDIDATE_MODELS.items():
+        neg_rmse_scores = cross_val_score(
+            model, X_train_scaled, y_train,
+            scoring="neg_root_mean_squared_error",
+            cv=kf, n_jobs=-1,
+        )
+        rmse_scores = -neg_rmse_scores
+        mean_rmse = rmse_scores.mean()
+        std_rmse = rmse_scores.std()
+        results.append({"name": name, "model": model, "cv_rmse": mean_rmse, "cv_std": std_rmse})
+        print(f"{name:<25} {mean_rmse:>10.5f}  {std_rmse:>10.5f}")
+
+    # Select the model with the lowest mean CV RMSE
+    best = min(results, key=lambda r: r["cv_rmse"])
+    print(f"\n>> Best model: {best['name']}  (CV RMSE = {best['cv_rmse']:.5f})")
+
+    # Refit the best model on the full training set
+    best["model"].fit(X_train_scaled, y_train)
+    return best["name"], best["model"], best["cv_rmse"], best["cv_std"]
 
 
 # ---------------------------------------------------------------------------
 # 7. Evaluation
 # ---------------------------------------------------------------------------
 
-def evaluate_model(model: LinearRegression, X_test_scaled, y_test) -> dict:
-    """Evaluate the model on held-out test data using RMSE and R^2.
-
-    Args:
-        model: Trained LinearRegression model.
-        X_test_scaled: Scaled test feature matrix.
-        y_test: True test target values.
-
-    Returns:
-        A dict with keys "mse", "rmse", and "r2".
-    """
+def evaluate_model(model, X_test_scaled, y_test) -> dict:
+    """Evaluate on the held-out test set; return metrics dict."""
     y_pred = model.predict(X_test_scaled)
     mse = mean_squared_error(y_test, y_pred)
-    rmse = np.sqrt(mse)
-    r2 = r2_score(y_test, y_pred)
+    rmse = float(np.sqrt(mse))
+    r2 = float(r2_score(y_test, y_pred))
 
-    print("\nModel Evaluation:")
-    print(f"MSE:  {mse:.4f}")
-    print(f"RMSE: {rmse:.4f}")
-    print(f"R^2:  {r2:.4f}")
-
-    return {"mse": mse, "rmse": rmse, "r2": r2}
+    print(f"\nTest-set evaluation:")
+    print(f"  RMSE : {rmse:.5f}")
+    print(f"  R²   : {r2:.5f}")
+    return {"rmse": rmse, "r2": r2}
 
 
 # ---------------------------------------------------------------------------
 # 8. Serialization
 # ---------------------------------------------------------------------------
 
-def save_artifacts(model: LinearRegression, scaler: StandardScaler,
-                    model_dir: str = MODEL_DIR) -> None:
-    """Persist the trained model and scaler to disk with pickle.
-
-    Args:
-        model: Trained LinearRegression model.
-        scaler: Fitted StandardScaler.
-        model_dir: Directory to write the .pkl files into.
-    """
+def save_artifacts(model, scaler: StandardScaler,
+                   model_name: str, metrics: dict,
+                   cv_rmse: float, cv_std: float,
+                   model_dir: str = MODEL_DIR) -> None:
+    """Save model.pkl, scaler.pkl, and model_info.json."""
     os.makedirs(model_dir, exist_ok=True)
 
     with open(os.path.join(model_dir, "hdi_model.pkl"), "wb") as f:
@@ -256,11 +342,27 @@ def save_artifacts(model: LinearRegression, scaler: StandardScaler,
     with open(os.path.join(model_dir, "scaler.pkl"), "wb") as f:
         pickle.dump(scaler, f)
 
-    print(f"\nSaved {model_dir}/hdi_model.pkl and {model_dir}/scaler.pkl")
+    info = {
+        "model_name": model_name,
+        "features": FEATURE_COLUMNS,
+        "n_features": len(FEATURE_COLUMNS),
+        "cv_folds": CV_FOLDS,
+        "cv_rmse": round(cv_rmse, 5),
+        "cv_std":  round(cv_std, 5),
+        "test_rmse": round(metrics["rmse"], 5),
+        "test_r2":   round(metrics["r2"], 5),
+    }
+    with open(os.path.join(model_dir, "model_info.json"), "w") as f:
+        json.dump(info, f, indent=2)
+
+    print(f"\nSaved artifacts to {model_dir}/")
+    print(f"  hdi_model.pkl   — {model_name}")
+    print(f"  scaler.pkl")
+    print(f"  model_info.json — R² = {metrics['r2']:.4f}")
 
 
 # ---------------------------------------------------------------------------
-# 9. Classification helper (mirrors the logic used in app.py)
+# 9. Classification helper (mirrors app.py)
 # ---------------------------------------------------------------------------
 
 def classify_hdi(score: float) -> str:
@@ -279,34 +381,36 @@ def classify_hdi(score: float) -> str:
 # 10. Scenario sanity checks
 # ---------------------------------------------------------------------------
 
-def run_scenario_tests(model: LinearRegression, scaler: StandardScaler) -> None:
-    """Run the model on a few illustrative countries to sanity-check output.
-
-    Args:
-        model: Trained LinearRegression model.
-        scaler: Fitted StandardScaler used at training time.
-    """
+def run_scenario_tests(model, scaler: StandardScaler) -> None:
+    """Run three illustrative country-profiles through the trained model."""
     test_cases = [
-        {  # Very High HDI, e.g. a wealthy, highly educated country
-            "Life_Expectancy": 82, "Mean_Years_Schooling": 13.5,
-            "Expected_Years_Schooling": 17, "GNI_per_capita": 55000,
+        {   # Very High HDI (e.g. Norway-like)
+            "Life_Expectancy": 82.5, "Mean_Years_Schooling": 13.0,
+            "Expected_Years_Schooling": 18.0, "GNI_per_capita": 65000,
+            "Gender_Dev_Index": 0.99, "Gender_Ineq_Index": 0.05,
+            "CO2_per_capita": 8.0,
         },
-        {  # Medium HDI, e.g. an upper-middle-income country
-            "Life_Expectancy": 68, "Mean_Years_Schooling": 7.5,
-            "Expected_Years_Schooling": 11, "GNI_per_capita": 8000,
+        {   # Medium HDI (e.g. Bolivia-like)
+            "Life_Expectancy": 68.0, "Mean_Years_Schooling": 8.0,
+            "Expected_Years_Schooling": 12.0, "GNI_per_capita": 7500,
+            "Gender_Dev_Index": 0.95, "Gender_Ineq_Index": 0.40,
+            "CO2_per_capita": 1.8,
         },
-        {  # Low HDI, e.g. a low-income country with limited schooling
-            "Life_Expectancy": 58, "Mean_Years_Schooling": 4,
-            "Expected_Years_Schooling": 7, "GNI_per_capita": 1800,
+        {   # Low HDI (e.g. Chad-like)
+            "Life_Expectancy": 54.0, "Mean_Years_Schooling": 2.5,
+            "Expected_Years_Schooling": 6.5, "GNI_per_capita": 1500,
+            "Gender_Dev_Index": 0.80, "Gender_Ineq_Index": 0.65,
+            "CO2_per_capita": 0.1,
         },
     ]
 
-    print("\nScenario Tests:")
+    print("\nScenario sanity checks:")
     for case in test_cases:
-        row = pd.DataFrame([case])
+        row = pd.DataFrame([case])[FEATURE_COLUMNS]
         row_scaled = scaler.transform(row)
-        pred = model.predict(row_scaled)[0]
-        print(f"{case} -> HDI: {pred:.3f} ({classify_hdi(pred)})")
+        pred = float(model.predict(row_scaled)[0])
+        pred = round(min(max(pred, 0.0), 1.0), 3)
+        print(f"  HDI = {pred:.3f}  ({classify_hdi(pred)})")
 
 
 # ---------------------------------------------------------------------------
@@ -314,23 +418,38 @@ def run_scenario_tests(model: LinearRegression, scaler: StandardScaler) -> None:
 # ---------------------------------------------------------------------------
 
 def main() -> None:
-    """Run the full training pipeline end to end."""
-    df = load_dataset(DATA_PATH)
-    df = handle_missing_values(df)
+    """Run the full training pipeline end-to-end."""
+    # 1. Wrangle
+    df = load_and_wrangle(DATA_PATH)
 
+    # 2. Preprocess
+    df = preprocess(df)
+
+    # 3. EDA
     run_eda(df)
 
+    # 4. Split
     X_train, X_test, y_train, y_test = split_features_target(df)
+    print(f"\nSplit: {len(X_train)} train rows, {len(X_test)} test rows.")
 
+    # 5. Scale
     scaler = fit_scaler(X_train)
     X_train_scaled = scaler.transform(X_train)
-    X_test_scaled = scaler.transform(X_test)
+    X_test_scaled  = scaler.transform(X_test)
 
-    model = train_linear_regression(X_train_scaled, y_train)
-    evaluate_model(model, X_test_scaled, y_test)
+    # 6. Model selection
+    model_name, best_model, cv_rmse, cv_std = select_best_model(X_train_scaled, y_train)
 
-    save_artifacts(model, scaler)
-    run_scenario_tests(model, scaler)
+    # 7. Evaluate on test set
+    metrics = evaluate_model(best_model, X_test_scaled, y_test)
+
+    # 8. Save artifacts
+    save_artifacts(best_model, scaler, model_name, metrics, cv_rmse, cv_std)
+
+    # 9. Sanity checks
+    run_scenario_tests(best_model, scaler)
+
+    print(f"Training pipeline complete.")
 
 
 if __name__ == "__main__":

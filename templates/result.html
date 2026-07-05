@@ -12,20 +12,20 @@
 
 {% if category == "Very High Human Development" %}
   {% set badge_class = "badge-vhigh" %}
-  {% set interpretation = "This profile places the country among the world's most developed nations, with strong outcomes across health, education, and income working together rather than any single factor dominating." %}
-  {% set recommendation = "At this level, further HDI gains typically come from small, broad-based improvements — for example, further increases in expected years of schooling or continued gains in life expectancy — rather than dramatic policy shifts." %}
+  {% set interpretation = "This profile places the country among the world's most developed nations, with strong outcomes across health, education, income, and gender equity working together rather than any single factor dominating." %}
+  {% set recommendation = "At this level, further HDI gains typically come from small, broad-based improvements — further increases in expected years of schooling, continued gains in life expectancy, and closing remaining gender gaps — rather than dramatic policy shifts." %}
 {% elif category == "High Human Development" %}
   {% set badge_class = "badge-high" %}
   {% set interpretation = "This profile reflects solid, above-average development, with reasonably strong health and education outcomes and a growing income base." %}
-  {% set recommendation = "Targeted investment in expected years of schooling and continued income growth are usually the most direct paths toward the Very High tier from here." %}
+  {% set recommendation = "Targeted investment in expected years of schooling, reducing the Gender Inequality Index, and continued income growth are usually the most direct paths toward the Very High tier from here." %}
 {% elif category == "Medium Human Development" %}
   {% set badge_class = "badge-medium" %}
-  {% set interpretation = "This profile sits in the middle of the global distribution — meaningful progress has been made, but health, education, or income (or some combination) still lag behind top performers." %}
-  {% set recommendation = "Identifying which single indicator is weakest relative to the others often reveals the highest-leverage area for policy attention." %}
+  {% set interpretation = "This profile sits in the middle of the global distribution — meaningful progress has been made, but health, education, income, or gender equity (or some combination) still lag behind top performers." %}
+  {% set recommendation = "Identifying which single indicator is weakest relative to the others often reveals the highest-leverage area for policy attention. Reducing gender inequality typically yields compound benefits across multiple dimensions." %}
 {% else %}
   {% set badge_class = "badge-low" %}
-  {% set interpretation = "This profile reflects significant development challenges, typically driven by a combination of lower life expectancy, limited access to schooling, and low income per capita." %}
-  {% set recommendation = "Historically, sustained gains at this level come from long-term investment in primary and secondary education and basic healthcare infrastructure." %}
+  {% set interpretation = "This profile reflects significant development challenges, typically driven by a combination of lower life expectancy, limited access to schooling, low income per capita, and high gender inequality." %}
+  {% set recommendation = "Historically, sustained gains at this level come from long-term investment in primary and secondary education, basic healthcare infrastructure, and policies that improve women's access to education and employment." %}
 {% endif %}
 
 <div class="result-shell">
@@ -53,6 +53,8 @@
       </div>
     </div>
 
+    <!-- Input summary: Core indicators -->
+    <p class="inputs-group-label">Core HDI Indicators</p>
     <div class="result-inputs">
       <div class="item">
         <div class="label">Life Expectancy</div>
@@ -71,6 +73,34 @@
         <div class="value">${{ "{:,.0f}".format(gni) }}</div>
       </div>
     </div>
+
+    <!-- Input summary: Gender & environment indicators -->
+    <p class="inputs-group-label" style="margin-top: 16px;">Gender &amp; Environment Indicators</p>
+    <div class="result-inputs">
+      <div class="item">
+        <div class="label">Gender Dev. Index</div>
+        <div class="value">{{ "%.3f"|format(gdi) }}</div>
+      </div>
+      <div class="item">
+        <div class="label">Gender Ineq. Index</div>
+        <div class="value">{{ "%.3f"|format(gii) }}</div>
+      </div>
+      <div class="item">
+        <div class="label">CO₂ per Capita</div>
+        <div class="value">{{ co2 }} t</div>
+      </div>
+    </div>
+
+    {% if model_info %}
+    <div class="result-model-info">
+      <span class="result-model-label">Predicted by:</span>
+      <span class="result-model-name">{{ model_info.model_name }}</span>
+      <span class="result-model-sep">·</span>
+      <span class="result-model-metric">R² {{ "%.4f"|format(model_info.test_r2) }}</span>
+      <span class="result-model-sep">·</span>
+      <span class="result-model-metric">RMSE {{ "%.4f"|format(model_info.test_rmse) }}</span>
+    </div>
+    {% endif %}
 
     <div class="result-block">
       <h3>Interpretation</h3>
