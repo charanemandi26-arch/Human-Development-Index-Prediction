@@ -1,0 +1,76 @@
+--- Page 1 ---
+ 
+Coding  &  Solution   
+Date  15  March  2026  Team  ID  xxxxxx  Project  Name  xxxxxx  Maximum  Marks  5  Marks  
+ Coding  &  Solution  This  section  evaluates  the  quality  and  completeness  of  your  implemented  code  and  the  overall  
+solution.
+ 
+Your
+ 
+submission
+ 
+should
+ 
+demonstrate
+ 
+working
+ 
+functionality,
+ 
+clean
+ 
+code
+ 
+practices,
+ 
+and
+ 
+alignment
+ 
+with
+ 
+your
+ 
+defined
+ 
+requirements.
+   Instructions:  1.  Ensure  your  code  is  well-structured,  commented,  and  follows  best  practices  for  your  
+chosen
+ 
+technology
+ 
+stack.
+ 2.  The  solution  should  address  the  core  problem  statement  and  implement  the  key  
+functional
+ 
+requirements.
+ 3.  Include  all  source  files,  configuration  files,  and  setup  instructions  needed  to  run  the  application.  4.  Attach  or  link  to  your  code  repository  (e.g.,  GitHub)  in  the  table  below.    Solution  Summary   
+Field  Details  Repository  Link  /  URL  [Paste  your  GitHub  /  GitLab  or  hosted  link  here]  Programming  Language(s)  
+[e.g.,  Python,  JavaScript,  Java]  
+Framework(s)  Used  [e.g.,  Flask,  React,  Spring  Boot]  Key  Features  Implemented  
+ 
+Pending  /  Incomplete  Features  
+ 
+Setup  /  Run  Instructions  
+ 
+ 
+--- Page 2 ---
+ 
+Code  Quality  Checklist   
+S.N  o  
+Criteria  
+Status  (Yes  /  No)  
+1  Code  is  modular  and  organized  into  functions  /  classes  
+ 
+2  Meaningful  variable  and  function  names  are  used  
+ 
+3  Code  includes  comments  /  documentation  where  necessary  
+ 
+4  Error  handling  is  implemented  for  critical  operations  
+ 
+5  The  application  runs  without  critical  errors  
+ 
+6  Code  is  committed  to  a  version  control  repository  
+ 
+ Additional  Notes  /  Comments:  
+ 

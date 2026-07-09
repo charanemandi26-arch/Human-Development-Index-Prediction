@@ -1,0 +1,89 @@
+--- Page 1 ---
+  
+Scalability  &  Future  Plan   Date  15  March  2024  
+Team  ID  XXXXXX  
+Project  Name  XXXXXX  
+Maximum  Marks  1  Mark  
+ Scalability  &  Future  Plan:  This  document  outlines  how  the  current  project  solution  can  be  scaled  to  handle  larger  user  bases,  
+increased
+ 
+data
+ 
+loads,
+ 
+or
+ 
+extended
+ 
+features
+ 
+in
+ 
+the
+ 
+future.
+ 
+It
+ 
+also
+ 
+captures
+ 
+the
+ 
+team's
+ 
+roadmap
+ 
+for
+ 
+enhancing
+ 
+and
+ 
+evolving
+ 
+the
+ 
+project
+ 
+beyond
+ 
+its
+ 
+current
+ 
+state.
+   Current  System  Limitations:   S.No  
+ Limitation  
+ Impact  
+Priority  to  Address  (High  /  Medium  /  Low)  
+1  
+   
+2  
+   
+3  
+   
+ Scalability  Plan:  
+S.No  Scalability  Aspect  Current  State  Proposed  Upgrade  /  Solution  
+1  User  Load  
+  
+2  Data  Storage  
+  
+3  Performance  
+  
+4  Security  
+  
+ Future  Roadmap:  
+Phase  Planned  Feature  /  Enhancement  Target  Timeline  Expected  Impact  
+ 
+
+--- Page 2 ---
+ 
+Phase  2  
+   
+Phase  3  
+   
+Phase  4  
+   
+ 

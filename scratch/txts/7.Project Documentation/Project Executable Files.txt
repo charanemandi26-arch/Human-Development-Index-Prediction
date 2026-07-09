@@ -1,0 +1,124 @@
+--- Page 1 ---
+ 
+Project  Executable  Files   
+Date  15  March  2026  
+Team  ID  xxxxxx  
+Project  Name  xxxxxx  
+Maximum  Marks  3  Marks  
+ Project  Executable  Files  This  section  requires  submission  of  all  executable  and  deployable  files  for  your  project.  
+Ensure
+ 
+all
+ 
+files
+ 
+are
+ 
+properly
+ 
+organized,
+ 
+named,
+ 
+and
+ 
+uploaded
+ 
+to
+ 
+the
+ 
+specified
+ 
+submission
+ 
+platform.
+ 
+The
+ 
+evaluator
+ 
+must
+ 
+be
+ 
+able
+ 
+to
+ 
+run
+ 
+or
+ 
+deploy
+ 
+your
+ 
+solution
+ 
+using
+ 
+the
+ 
+provided
+ 
+files
+ 
+and
+ 
+instructions.
+ Step  1:  Submission  Checklist   
+S.No  Item  to  Submit  Submitted  (Yes  /  No  /  NA)  
+1  Complete  source  code  (all  files  and  folders)  
+ 
+2  README  /  Setup  Guide  (instructions  to  run  the  project)  
+ 
+3  requirements.txt  /  package.json  /  dependency  file  
+ 
+4  Database  schema  /  seed  files  (if  applicable)  
+ 
+5  Environment  configuration  file  (.env.example  or  similar)  
+ 
+6  Deployed  application  URL  (if  hosted)  
+ 
+7  APK  /  Executable  binary  (if  applicable  for  mobile/desktop  apps)  
+ 
+8  Dockerfile  /  Containerization  config  (if  applicable)  
+ 
+9  Test  files  and  test  results  
+ 
+10  Demo  video  or  walkthrough  (if  required)  
+ 
+--- Page 2 ---
+ 
+ 
+--- Page 3 ---
+ 
+Step  2:  File  /  Folder  Structure  Provide  an  overview  of  your  project's  file  and  folder  structure  below:   
+ Step  3:  Deployment  /  Access  Details   
+Field  Details  
+Hosted  /  Deployed  URL  
+ 
+Login  Credentials  (Demo)  
+[Provide  demo  username  and  password  for  evaluator  access]  
+Platform  /  Hosting  Provider  
+[e.g.,  Render,  Vercel,  AWS,  Heroku,  Azure]  
+Repository  Link  
+ 
+Demo  Video  Link  
+ 
+ 
+
+--- Page 4 ---
+ 
+Step  4:  Run  Instructions  
+Provide  clear,  step-by-step  instructions  for  the  evaluator  to  run  your  project  locally:   
+ Step  5:  Known  Issues  /  Limitations   
+S.No  Known  Issue  /  Limitation  Workaround  /  Status  
+1  
+  
+2  
+  
+3  
+  
+ 

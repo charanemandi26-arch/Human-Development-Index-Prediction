@@ -1,0 +1,71 @@
+--- Page 1 ---
+ 
+Empathy  Map  
+ Date  15  March  2024  
+Team  ID  xxxxxx  
+Project  Name  xxxxxx  
+Maximum  Marks  4  Marks  
+Empathy  Map   Create  an  empathy  map  to  understand  your  customer/user  from  four  perspectives  -  what  they  
+Say,
+ 
+Think,
+ 
+Do,
+ 
+and
+ 
+Feel
+ 
+-
+ 
+in
+ 
+relation
+ 
+to
+ 
+the
+ 
+problem
+ 
+your
+ 
+project
+ 
+addresses.
+ 
+This
+ 
+helps
+ 
+the
+ 
+team
+ 
+build
+ 
+a
+ 
+customer-centric
+ 
+solution.
+ 
+SAYS  
+•         
+•         
+•         
+  THINKS  
+•         
+•         
+•           
+  PERSONA  NAME  (Role  /  User  Type)  
+  
+DOES  
+•         
+•         
+•           
+  FEELS  
+•         
+•         
+•         
+ 

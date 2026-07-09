@@ -1,0 +1,61 @@
+--- Page 1 ---
+ 
+ 
+Date  15  March  2026  
+Team  ID  xxxxxx  
+Project  Name  xxxxxx  
+Maximum  Marks  5  Marks    Problem-Solution  Fit  Canvas:  Use  the  framework  below  to  ensure  your  proposed  solution  accurately  addresses  the  root  causes,  
+behaviors,
+ 
+and
+ 
+limitations
+ 
+of
+ 
+your
+ 
+target
+ 
+audience.
+ 
+Fill
+ 
+out
+ 
+the
+ 
+canvas
+ 
+in
+ 
+the
+ 
+respective
+ 
+boxes
+ 
+just
+ 
+like
+ 
+the
+ 
+original
+ 
+visual
+ 
+template.
+  
+1.  CUSTOMER  SEGMENT(S)  [CS]  
+6.  CUSTOMER  LIMITATIONS  EG.  BUDGET,  DEVICES  [CL]  
+5.  AVAILABLE  SOLUTIONS  PROS  &  CONS  [AS]  
+2.  PROBLEMS  /  PAINS  +  ITS  FREQUENCY  [PR]  
+9.  PROBLEM  ROOT  /  CAUSE  [RC]  
+7.  BEHAVIOR  +  ITS  INTENSITY  [BE]  
+3.  TRIGGERS  TO  ACT  [TR]  
+10.  YOUR  SOLUTION  [SL]  
+8.  CHANNELS  OF  BEHAVIOR  [CH]   ONLINE  
+4.  EMOTIONS  BEFORE  /  AFTER  [EM]  
+OFFLINE  
+ 

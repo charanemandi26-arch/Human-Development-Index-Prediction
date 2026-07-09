@@ -1,0 +1,89 @@
+--- Page 1 ---
+ 
+Project  Initialization  and  Planning  Phase   
+Date  15  March  2024  
+Team  ID  PNT2022TMID124356  
+Project  Title  SmartLender  -  Applicant  Credibility  Prediction  for  Loan  Approval  
+Maximum  Marks  5  Marks   Project  Proposal  (Proposed  Solution)  report  The  proposal  report  aims  to  transform  loan  approval  using  machine  learning,  boosting  efficiency  
+and
+ 
+accuracy.
+ 
+It
+ 
+tackles
+ 
+system
+ 
+inefficiencies,
+ 
+promising
+ 
+better
+ 
+operations,
+ 
+reduced
+ 
+risks,
+ 
+and
+ 
+happier
+ 
+customers.
+ 
+Key
+ 
+features
+ 
+include
+ 
+a
+ 
+machine
+ 
+learning-based
+ 
+credit
+ 
+model
+ 
+and
+ 
+real-time
+ 
+decision-making.
+  
+Project  Overview  
+Objective  The  primary  objective  is  to  revolutionize  the  loan  approval  process  by  implementing  advanced  machine  learning  techniques,  ensuring  faster  and  more  accurate  assessments.  
+Scope  The  project  comprehensively  assesses  and  enhances  the  loan  approval  process,  incorporating  machine  learning  for  a  more  robust  and  efficient  system.  
+Problem  Statement  
+Description  Addressing  inaccuracies  and  inefficiencies  in  the  current  loan  approval  system  adversely  affects  operational  efficiency  and  customer  satisfaction.  
+Impact  Solving  these  issues  will  result  in  improved  operational  efficiency,  reduced  risks,  and  an  overall  enhancement  in  the  lending  process,  contributing  to  customer  satisfaction  and  organizational  success.  
+Proposed  Solution  
+Approach  Employing  machine  learning  techniques  to  analyze  and  predict  creditworthiness,  creating  a  dynamic  and  adaptable  loan  approval  system.  
+Key  Features  -  Implementation  of  a  machine  learning-based  credit  assessment  model.  
+ 
+--- Page 2 ---
+ 
+ 
+ -  Real-time  decision-making  for  quicker  loan  approvals.  -  Continuous  learning  to  adapt  to  evolving  financial  landscapes.  
+ Resource  Requirements   
+Resource  Type  Description  Specification/Allocation  
+Hardware  
+Computing  Resources  
+CPU/GPU  specifications,  number  of  cores  
+T4  GPU  
+Memory  RAM  specifications  8  GB  
+Storage  
+Disk  space  for  data,  models,  and  logs  
+1  TB  SSD  
+Software  
+Frameworks  Python  frameworks  Flask  
+Libraries  Additional  libraries  
+scikit-learn,  pandas,  numpy,  matplotlib,  seaborn  
+Development  Environment  IDE  Jupyter  Notebook,  pycharm  
+Data  
+Data  Source,  size,  format  
+Kaggle  dataset,  614,  csv  UCI  dataset,  690,  csv   

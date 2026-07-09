@@ -1,0 +1,27 @@
+--- Page 1 ---
+ 
+Brainstorming  &  Idea  Prioritization  Template  
+ Date  15  March  2024  
+Team  ID  xxxxxx  
+Project  Name  xxxxxx  
+Maximum  Marks  3  Marks  
+ Step  1:  Brainstorm  and  Idea  Listing  Each  team  member  lists  out  as  many  ideas  as  possible  without  judging  them  at  this  stage.  
+S.No  Team  Member  Idea  /  Suggestion  Category  Group  No.  
+1          
+2          
+3          
+4          
+5          
+6          
+Step  2:  Idea  Prioritization  Rate  each  grouped  idea  on  feasibility  and  importance,  then  select  the  final  idea(s)  to  move  
+forward
+ 
+with.
+ 
+Group  No.  
+Final  Idea  Feasibility  (High/Medium/Low)  
+Importance  (High/Medium/Low)  
+Priority  Selected  (Yes/No)  
+1            
+2            
+3             

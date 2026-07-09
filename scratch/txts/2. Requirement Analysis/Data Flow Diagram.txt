@@ -1,0 +1,54 @@
+--- Page 1 ---
+ 
+Data  Flow  Diagram    
+Date  15  March  2026  
+Team  ID  xxxxxx  
+Project  Name  xxxxxx  
+Maximum  Marks  2  Marks   
+Data  Flow  Diagram  
+Create  a  Data  Flow  Diagram  (DFD)  to  show  how  data  moves  through  your  system  -  between  
+external
+ 
+entities,
+ 
+processes,
+ 
+and
+ 
+data
+ 
+stores.
+ 
+Use
+ 
+the
+ 
+symbol
+ 
+legend
+ 
+below
+ 
+as
+ 
+a
+ 
+guide.
+ 
+DFD  Symbol  Legend  
+Symbol  Name  Description  
+Oval  /  Rounded  shape  
+External  Entity  A  person,  organization,  or  system  outside  the  project  that  sends  or  receives  data  (e.g.,  Customer,  Payment  Gateway).  
+Rectangle  with  numbered  header  
+Process  An  activity  that  transforms  incoming  data  into  outgoing  data  (e.g.,  Validate  Request,  Process  Order).  
+Rectangle  (solid  fill,  no  number)  
+Data  Store  A  place  where  data  is  held  for  later  use  (e.g.,  Customer  Database,  Inventory).  
+Labeled  arrow  Data  Flow  The  movement  of  data  between  entities,  processes,  and  data  stores,  labeled  with  what  data  is  being  passed.    
+Example  The  diagram  below  illustrates  how  the  symbols  above  come  together  to  form  a  complete  data  
+flow
+ 
+diagram.
+ 
+--- Page 2 ---
+ 
+   
