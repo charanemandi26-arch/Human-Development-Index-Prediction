@@ -359,6 +359,10 @@
           <div class="row"><span>GII</span><span>0.05</span></div>
           <div class="row"><span>CO₂</span><span>8.0 t</span></div>
         </div>
+        <button class="btn-use"
+          data-le="82.5" data-ms="13.0" data-es="18.0" data-gni="65000"
+          data-gdi="0.99" data-gii="0.05" data-co2="8.0"
+          onclick="fillForm(this)">↗ Use these values</button>
       </div>
 
       <div class="scenario-card">
@@ -374,6 +378,10 @@
           <div class="row"><span>GII</span><span>0.40</span></div>
           <div class="row"><span>CO₂</span><span>1.8 t</span></div>
         </div>
+        <button class="btn-use"
+          data-le="68.0" data-ms="8.0" data-es="12.0" data-gni="7500"
+          data-gdi="0.95" data-gii="0.40" data-co2="1.8"
+          onclick="fillForm(this)">↗ Use these values</button>
       </div>
 
       <div class="scenario-card">
@@ -389,6 +397,10 @@
           <div class="row"><span>GII</span><span>0.65</span></div>
           <div class="row"><span>CO₂</span><span>0.1 t</span></div>
         </div>
+        <button class="btn-use"
+          data-le="54.0" data-ms="2.5" data-es="6.5" data-gni="1500"
+          data-gdi="0.80" data-gii="0.65" data-co2="0.1"
+          onclick="fillForm(this)">↗ Use these values</button>
       </div>
     </div>
   </div>
@@ -400,6 +412,23 @@
     <span>Built with Auto-Selected ML · UNDP Dataset · 7-Feature Pipeline</span>
   </div>
 </footer>
+
+<script>
+  /* -----------------------------------------------------------------------
+     Scenario auto-fill
+  ----------------------------------------------------------------------- */
+  function fillForm(btn) {
+    document.getElementById('life_expectancy').value   = btn.dataset.le;
+    document.getElementById('mean_schooling').value    = btn.dataset.ms;
+    document.getElementById('expected_schooling').value = btn.dataset.es;
+    document.getElementById('gni').value               = btn.dataset.gni;
+    document.getElementById('gdi').value               = btn.dataset.gdi;
+    document.getElementById('gii').value               = btn.dataset.gii;
+    document.getElementById('co2').value               = btn.dataset.co2;
+
+    document.getElementById('predict').scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+</script>
 
 </body>
 </html>

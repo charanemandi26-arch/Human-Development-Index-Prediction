@@ -28,6 +28,31 @@
   {% set recommendation = "Historically, sustained gains at this level come from long-term investment in primary and secondary education, basic healthcare infrastructure, and policies that improve women's access to education and employment." %}
 {% endif %}
 
+{# ── Nav bar (mirrors index.html) ── #}
+<nav class="nav">
+  <div class="wrap">
+    <a class="nav-brand" href="/">
+      <span class="dot"></span>
+      HDI Predictor
+    </a>
+    <ul class="nav-links">
+      <li><a href="/#what-is-hdi">What is HDI</a></li>
+      <li><a href="/#how-it-works">How it works</a></li>
+      <li><a href="/#scenarios">Examples</a></li>
+    </ul>
+    <a class="nav-cta" href="/#predict">New Prediction</a>
+    <button class="nav-hamburger" id="hamburger" aria-label="Toggle menu" aria-expanded="false">
+      <span></span><span></span><span></span>
+    </button>
+  </div>
+  <div class="nav-mobile-menu" id="mobile-menu" role="navigation" aria-label="Mobile navigation">
+    <a href="/#what-is-hdi">What is HDI</a>
+    <a href="/#how-it-works">How it works</a>
+    <a href="/#scenarios">Examples</a>
+    <a href="/#predict">New Prediction →</a>
+  </div>
+</nav>
+
 <div class="result-shell">
   <div class="result-card">
     <p class="eyebrow">Prediction Result</p>
@@ -114,10 +139,34 @@
 
     <div class="result-actions">
       <a class="btn btn-primary" href="/#predict">Predict Again</a>
-      <a class="btn btn-ghost" href="/">Home</a>
+      <a class="btn btn-ghost" href="/" style="color: var(--text-primary); border-color: var(--line);">Home</a>
     </div>
   </div>
 </div>
+
+<script>
+  /* -----------------------------------------------------------------------
+     Hamburger mobile menu toggle
+  ----------------------------------------------------------------------- */
+  const hamburger  = document.getElementById('hamburger');
+  const mobileMenu = document.getElementById('mobile-menu');
+
+  if (hamburger && mobileMenu) {
+    hamburger.addEventListener('click', () => {
+      const isOpen = mobileMenu.classList.toggle('open');
+      hamburger.classList.toggle('open', isOpen);
+      hamburger.setAttribute('aria-expanded', String(isOpen));
+    });
+
+    mobileMenu.querySelectorAll('a').forEach(link => {
+      link.addEventListener('click', () => {
+        mobileMenu.classList.remove('open');
+        hamburger.classList.remove('open');
+        hamburger.setAttribute('aria-expanded', 'false');
+      });
+    });
+  }
+</script>
 
 </body>
 </html>

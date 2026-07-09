@@ -16,6 +16,13 @@ Features used (must match train_model.py order exactly):
     6. Gender Inequality Index (GII, 0–1)
     7. CO₂ Emissions per Capita (tonnes)
 
+Routes:
+    GET  /                  Landing page with prediction form.
+    POST /predict           Validate inputs, run model, render result page.
+    POST /api/predict       JSON API — same logic, returns JSON.
+    GET  /api/model-info    Return model metadata as JSON.
+    GET  /health            Health-check endpoint (Docker / uptime monitors).
+
 Run with:
     python app.py
 """
@@ -24,10 +31,13 @@ import json
 import logging
 import os
 import pickle
+import uuid
 from typing import Tuple
 
 import numpy as np
-from flask import Flask, render_template, request
+from flask import Flask, jsonify, render_template, request
+
+from utils import classify_hdi
 
 # ---------------------------------------------------------------------------
 # App & logging
@@ -37,7 +47,7 @@ app = Flask(__name__)
 
 logging.basicConfig(
     level=logging.INFO,
-    format="%(asctime)s | %(levelname)s | %(message)s",
+    format="%(asctime)s | %(levelname)s | %(name)s | %(message)s",
 )
 logger = logging.getLogger("hdi_predictor")
 
@@ -57,13 +67,13 @@ FEATURE_FIELDS = (
 )
 
 FIELD_BOUNDS = {
-    "life_expectancy":   (20,  100),
-    "mean_schooling":    (0,   25),
-    "expected_schooling":(0,   25),
-    "gni":               (0,   200_000),
-    "gdi":               (0.0, 2.0),
-    "gii":               (0.0, 1.0),
-    "co2":               (0.0, 60.0),
+    "life_expectancy":    (20,   100),
+    "mean_schooling":     (0,    25),
+    "expected_schooling": (0,    25),
+    "gni":                (0,    200_000),
+    "gdi":                (0.0,  2.0),
+    "gii":                (0.0,  1.0),
+    "co2":                (0.0,  60.0),
 }
 
 FIELD_LABELS = {
@@ -102,7 +112,7 @@ def load_artifact(path: str):
 
 
 def load_model_info(path: str) -> dict:
-    """Load model_info.json; return empty dict if missing."""
+    """Load model_info.json; return empty dict if missing or malformed."""
     try:
         with open(path) as fh:
             return json.load(fh)
@@ -124,25 +134,6 @@ logger.info(
 # ---------------------------------------------------------------------------
 # Core prediction helpers
 # ---------------------------------------------------------------------------
-
-def classify_hdi(score: float) -> str:
-    """Map an HDI score to the official UNDP development category.
-
-    Thresholds (standard UNDP):
-        ≥ 0.800  → Very High Human Development
-        ≥ 0.700  → High Human Development
-        ≥ 0.550  → Medium Human Development
-        <  0.550 → Low Human Development
-    """
-    if score >= 0.800:
-        return "Very High Human Development"
-    elif score >= 0.700:
-        return "High Human Development"
-    elif score >= 0.550:
-        return "Medium Human Development"
-    else:
-        return "Low Human Development"
-
 
 def predict_hdi(
     life_exp: float,
@@ -213,6 +204,47 @@ def parse_and_validate_form(form) -> Tuple[float, float, float, float, float, fl
     )
 
 
+def parse_and_validate_json(data: dict) -> Tuple[float, float, float, float, float, float, float]:
+    """Extract and validate all seven indicator fields from a JSON dict.
+
+    Same validation rules as parse_and_validate_form.
+
+    Returns:
+        (life_expectancy, mean_schooling, expected_schooling, gni, gdi, gii, co2)
+
+    Raises:
+        ValidationError: If a field is missing, non-numeric, or out of range.
+    """
+    values: dict[str, float] = {}
+
+    for field in FEATURE_FIELDS:
+        if field not in data:
+            raise ValidationError(f"{FIELD_LABELS[field]} is required.")
+
+        try:
+            value = float(data[field])
+        except (TypeError, ValueError):
+            raise ValidationError(f"{FIELD_LABELS[field]} must be a number.")
+
+        lo, hi = FIELD_BOUNDS[field]
+        if not (lo <= value <= hi):
+            raise ValidationError(
+                f"{FIELD_LABELS[field]} must be between {lo} and {hi}."
+            )
+
+        values[field] = value
+
+    return (
+        values["life_expectancy"],
+        values["mean_schooling"],
+        values["expected_schooling"],
+        values["gni"],
+        values["gdi"],
+        values["gii"],
+        values["co2"],
+    )
+
+
 # ---------------------------------------------------------------------------
 # Routes
 # ---------------------------------------------------------------------------
@@ -226,19 +258,21 @@ def home():
 @app.route("/predict", methods=["POST"])
 def predict():
     """Validate inputs, run the model, and display the result page."""
+    req_id = uuid.uuid4().hex[:8]
+
     try:
         life_exp, mean_school, exp_school, gni, gdi, gii, co2 = (
             parse_and_validate_form(request.form)
         )
     except ValidationError as exc:
-        logger.warning("Validation failed: %s", exc)
+        logger.warning("[%s] Validation failed: %s", req_id, exc)
         return render_template("index.html", error=str(exc), model_info=model_info), 400
 
     try:
         prediction = predict_hdi(life_exp, mean_school, exp_school, gni, gdi, gii, co2)
         category   = classify_hdi(prediction)
     except Exception as exc:
-        logger.exception("Prediction failed: %s", exc)
+        logger.exception("[%s] Prediction failed: %s", req_id, exc)
         return render_template(
             "index.html",
             model_info=model_info,
@@ -246,8 +280,8 @@ def predict():
         ), 500
 
     logger.info(
-        "Prediction | inputs=(%.1f, %.1f, %.1f, %.0f, %.3f, %.3f, %.2f) → %.3f (%s)",
-        life_exp, mean_school, exp_school, gni, gdi, gii, co2, prediction, category,
+        "[%s] Prediction | inputs=(%.1f, %.1f, %.1f, %.0f, %.3f, %.3f, %.2f) → %.3f (%s)",
+        req_id, life_exp, mean_school, exp_school, gni, gdi, gii, co2, prediction, category,
     )
 
     return render_template(
@@ -265,12 +299,72 @@ def predict():
     )
 
 
+@app.route("/api/predict", methods=["POST"])
+def api_predict():
+    """JSON API endpoint — accepts JSON body, returns prediction as JSON.
+
+    Request body (JSON):
+        {
+            "life_expectancy": 78.5,
+            "mean_schooling": 10.2,
+            "expected_schooling": 15.0,
+            "gni": 25000,
+            "gdi": 0.98,
+            "gii": 0.15,
+            "co2": 4.5
+        }
+
+    Response (JSON):
+        {
+            "prediction": 0.842,
+            "category": "Very High Human Development",
+            "model": "Gradient Boosting"
+        }
+    """
+    req_id = uuid.uuid4().hex[:8]
+    data = request.get_json(silent=True) or {}
+
+    try:
+        life_exp, mean_school, exp_school, gni, gdi, gii, co2 = (
+            parse_and_validate_json(data)
+        )
+    except ValidationError as exc:
+        logger.warning("[%s] API validation failed: %s", req_id, exc)
+        return jsonify({"error": str(exc)}), 400
+
+    try:
+        prediction = predict_hdi(life_exp, mean_school, exp_school, gni, gdi, gii, co2)
+        category   = classify_hdi(prediction)
+    except Exception as exc:
+        logger.exception("[%s] API prediction failed: %s", req_id, exc)
+        return jsonify({"error": "Prediction failed. Please try again."}), 500
+
+    logger.info(
+        "[%s] API Prediction → %.3f (%s)", req_id, prediction, category,
+    )
+
+    return jsonify({
+        "prediction": prediction,
+        "category": category,
+        "model": model_info.get("model_name", "unknown"),
+        "test_r2": model_info.get("test_r2"),
+    })
+
+
 @app.route("/api/model-info")
 def api_model_info():
     """Return model metadata as JSON (for programmatic use)."""
-    from flask import jsonify
     return jsonify(model_info)
 
+
+@app.route("/health")
+def health():
+    """Health-check endpoint for Docker and uptime monitors."""
+    return jsonify({
+        "status": "ok",
+        "model": model_info.get("model_name", "unknown"),
+        "test_r2": model_info.get("test_r2"),
+    })
 
 
 if __name__ == "__main__":

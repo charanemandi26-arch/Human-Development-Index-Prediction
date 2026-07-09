@@ -12,8 +12,10 @@ Pipeline stages:
   2. Preprocess      – drop rows with any NaN feature or target;
                        no imputation needed given enough clean rows.
   3. EDA             – distribution, correlation heatmap, feature
-                       scatter plots saved to notebooks/plots/.
-  4. Split           – 80/20 stratified split (stratified by HDI tier).
+                       scatter plots, and feature importance saved
+                       to notebooks/plots/.
+  4. Split           – 80/20 random split (no stratification; clean
+                       data is large enough to avoid severe imbalance).
   5. Scale           – StandardScaler fitted only on training data.
   6. Model selection – compare LinearRegression, RandomForest, and
                        GradientBoosting with 5-fold cross-validation
@@ -34,7 +36,6 @@ Run from the project root:
 
 import json
 import os
-import re
 import warnings
 
 import matplotlib
@@ -50,6 +51,8 @@ from sklearn.metrics import mean_squared_error, r2_score
 from sklearn.model_selection import KFold, cross_val_score, train_test_split
 from sklearn.preprocessing import StandardScaler
 import pickle
+
+from utils import classify_hdi
 
 warnings.filterwarnings("ignore")
 
@@ -82,6 +85,9 @@ FEATURE_COLUMNS = list(FEATURE_MAP.keys())
 RANDOM_STATE = 42
 TEST_SIZE = 0.2
 CV_FOLDS = 5
+
+# Set global random seed for full reproducibility
+np.random.seed(RANDOM_STATE)
 
 
 # ---------------------------------------------------------------------------
@@ -230,12 +236,45 @@ def run_eda(df: pd.DataFrame, plots_dir: str = PLOTS_DIR) -> None:
     print(f"EDA plots saved to {plots_dir}/")
 
 
+def plot_feature_importance(model, feature_names: list, plots_dir: str = PLOTS_DIR) -> None:
+    """Save a horizontal bar chart of feature importances for tree-based models.
+
+    For Linear Regression (no feature_importances_ attribute) the function
+    falls back gracefully and prints a notice instead.
+    """
+    os.makedirs(plots_dir, exist_ok=True)
+
+    if not hasattr(model, "feature_importances_"):
+        print("  [info] Model has no feature_importances_ — skipping importance plot.")
+        return
+
+    importances = model.feature_importances_
+    indices = np.argsort(importances)  # ascending so most important is at top
+    sorted_names = [feature_names[i].replace("_", " ") for i in indices]
+    sorted_vals  = importances[indices]
+
+    fig, ax = plt.subplots(figsize=(8, 5))
+    bars = ax.barh(sorted_names, sorted_vals, color="#6366f1", height=0.6)
+    ax.bar_label(bars, fmt="%.4f", padding=4, fontsize=9)
+    ax.set_xlabel("Feature Importance (mean decrease in impurity)", fontsize=10)
+    ax.set_title("Feature Importances — Best Model", fontsize=13)
+    ax.set_xlim(0, sorted_vals.max() * 1.18)
+    plt.tight_layout()
+    plt.savefig(os.path.join(plots_dir, "feature_importance.png"), dpi=120)
+    plt.close()
+    print(f"Feature importance plot saved to {plots_dir}/feature_importance.png")
+
+
 # ---------------------------------------------------------------------------
 # 4. Train / test split
 # ---------------------------------------------------------------------------
 
 def split_features_target(df: pd.DataFrame):
-    """Return (X_train, X_test, y_train, y_test) with an 80/20 split."""
+    """Return (X_train, X_test, y_train, y_test) with an 80/20 random split.
+
+    No stratification is applied; with several thousand clean rows the
+    natural HDI distribution in each split is representative without it.
+    """
     X = df[FEATURE_COLUMNS]
     y = df[TARGET]
     return train_test_split(X, y, test_size=TEST_SIZE, random_state=RANDOM_STATE)
@@ -362,19 +401,11 @@ def save_artifacts(model, scaler: StandardScaler,
 
 
 # ---------------------------------------------------------------------------
-# 9. Classification helper (mirrors app.py)
+# 9. Classification helper  (imported from utils.py)
 # ---------------------------------------------------------------------------
-
-def classify_hdi(score: float) -> str:
-    """Map a numeric HDI score to its UNDP development category."""
-    if score >= 0.800:
-        return "Very High Human Development"
-    elif score >= 0.700:
-        return "High Human Development"
-    elif score >= 0.550:
-        return "Medium Human Development"
-    else:
-        return "Low Human Development"
+# classify_hdi is imported at the top of this file from utils.py.
+# Both app.py and train_model.py share the same implementation to guarantee
+# consistent UNDP tier boundaries across training and inference.
 
 
 # ---------------------------------------------------------------------------
@@ -446,7 +477,10 @@ def main() -> None:
     # 8. Save artifacts
     save_artifacts(best_model, scaler, model_name, metrics, cv_rmse, cv_std)
 
-    # 9. Sanity checks
+    # 9. Feature importance plot (tree-based models only)
+    plot_feature_importance(best_model, FEATURE_COLUMNS)
+
+    # 10. Sanity checks
     run_scenario_tests(best_model, scaler)
 
     print(f"Training pipeline complete.")
