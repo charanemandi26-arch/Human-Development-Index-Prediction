@@ -10,7 +10,7 @@ license: mit
 
 # HDI Predictor
 
-[![Hugging Face Space](https://img.shields.io/badge/🤗%20Hugging%20Face-Space-orange)](https://huggingface.co/spaces/your-username/hdi-predictor)
+**🚀 Live Demo:** [Hugging Face Space](https://huggingface.co/spaces/Haricharan26/hdi-predictor) | [Direct Web App](https://haricharan26-hdi-predictor.hf.space)
 
 A machine learning web application that predicts a country's **Human
 Development Index (HDI)** score and development category from seven
