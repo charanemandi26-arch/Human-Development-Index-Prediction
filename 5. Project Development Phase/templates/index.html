@@ -1,0 +1,434 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>HDI Predictor — Human Development Index Estimator</title>
+<meta name="description" content="Predict a country's Human Development Index score and category from seven socio-economic indicators using an ML model auto-selected from Linear Regression, Random Forest, and Gradient Boosting.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:wght@500;600&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+
+<nav class="nav">
+  <div class="wrap">
+    <a class="nav-brand" href="#top">
+      <span class="dot"></span>
+      HDI Predictor
+    </a>
+    <ul class="nav-links">
+      <li><a href="#what-is-hdi">What is HDI</a></li>
+      <li><a href="#how-it-works">How it works</a></li>
+      <li><a href="#scenarios">Examples</a></li>
+    </ul>
+    <a class="nav-cta" href="#predict">Try it</a>
+  </div>
+</nav>
+
+<header class="hero" id="top">
+  <div class="wrap">
+    <div>
+      <p class="eyebrow">Machine Learning · Flask · 7 Indicators · Auto-Selected Model</p>
+      <h1>Estimate a country's <em>human development</em> from seven signals.</h1>
+      <p class="hero-sub">
+        This tool predicts the Human Development Index (HDI) — the UN's
+        composite measure of health, education, and living standards —
+        from seven socio-economic indicators including gender equity and
+        environmental footprint, using a model auto-selected from
+        Linear Regression, Random Forest, and Gradient Boosting.
+      </p>
+      <div class="hero-actions">
+        <a class="btn btn-primary" href="#predict">Run a prediction →</a>
+        <a class="btn btn-ghost" href="#what-is-hdi">What is HDI?</a>
+      </div>
+      <div class="hero-stats">
+        <div class="hero-stat">
+          <div class="num">7</div>
+          <div class="label">input indicators</div>
+        </div>
+        <div class="hero-stat">
+          <div class="num">3</div>
+          <div class="label">models compared</div>
+        </div>
+        <div class="hero-stat">
+          <div class="num">191</div>
+          <div class="label">countries · 32 years</div>
+        </div>
+        <div class="hero-stat">
+          <div class="num">4</div>
+          <div class="label">development tiers</div>
+        </div>
+      </div>
+
+      {% if model_info %}
+      <div class="model-badge">
+        <span class="model-badge-icon">⚡</span>
+        <span class="model-badge-name">{{ model_info.model_name }}</span>
+        <span class="model-badge-sep">·</span>
+        <span class="model-badge-metric">R² = {{ "%.4f"|format(model_info.test_r2) }}</span>
+        <span class="model-badge-sep">·</span>
+        <span class="model-badge-metric">RMSE = {{ "%.4f"|format(model_info.test_rmse) }}</span>
+      </div>
+      {% endif %}
+    </div>
+
+    <div class="hero-panel">
+      <p class="panel-title">The Development Spectrum</p>
+      <div class="spectrum-bar" aria-hidden="true">
+        <div class="spectrum-marker" style="left: 78%;"></div>
+      </div>
+      <div class="spectrum-scale">
+        <span>0.00</span>
+        <span>0.55</span>
+        <span>0.70</span>
+        <span>0.80</span>
+        <span>1.00</span>
+      </div>
+      <div class="spectrum-legend">
+        <div class="item"><span class="swatch sw-low"></span>Low</div>
+        <div class="item"><span class="swatch sw-medium"></span>Medium</div>
+        <div class="item"><span class="swatch sw-high"></span>High</div>
+        <div class="item"><span class="swatch sw-vhigh"></span>Very High</div>
+      </div>
+    </div>
+  </div>
+</header>
+
+<section id="what-is-hdi">
+  <div class="wrap">
+    <div class="explainer-grid">
+      <div>
+        <p class="eyebrow">The Index</p>
+        <h3 style="font-size:24px; margin-top:10px; font-family: var(--font-display);">What is the Human Development Index?</h3>
+        <p>
+          The HDI is a summary measure published by the United Nations
+          Development Programme (UNDP) that ranks countries by more than
+          just income. It condenses three dimensions of human wellbeing
+          into a single score between 0 and 1, making it possible to
+          compare long-term progress across very different economies.
+        </p>
+        <div class="pillars">
+          <div class="pillar"><span class="tag">Health</span> Life expectancy at birth</div>
+          <div class="pillar"><span class="tag">Education</span> Mean and expected years of schooling</div>
+          <div class="pillar"><span class="tag">Income</span> Gross National Income (GNI) per capita</div>
+          <div class="pillar"><span class="tag">Gender</span> Gender Development &amp; Inequality Indices</div>
+          <div class="pillar"><span class="tag">Planet</span> CO₂ emissions per capita</div>
+        </div>
+      </div>
+      <div>
+        <p class="eyebrow">The Stakes</p>
+        <h3 style="font-size:24px; margin-top:10px; font-family: var(--font-display);">Why HDI matters</h3>
+        <p>
+          GDP alone can hide how ordinary people actually live — a
+          resource-rich country can be wealthy on paper while its
+          citizens have short lifespans or little access to education.
+          HDI corrects for this by rewarding countries that convert
+          income into longer, healthier, more educated lives.
+        </p>
+        <p style="margin-top:14px;">
+          This predictor extends the standard four-feature model with
+          Gender Development Index (GDI), Gender Inequality Index (GII),
+          and CO₂ per capita — giving a richer, more complete picture
+          of development. The model is auto-selected from three
+          algorithms using 5-fold cross-validation.
+        </p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="section-alt">
+  <div class="wrap">
+    <div class="section-head">
+      <p class="eyebrow">Built on Seven Signals</p>
+      <h2>What the model looks at</h2>
+      <p>Each prediction is built from seven indicators spanning health, education, income, gender equity, and environmental footprint — feeding the best-performing model from a 5-fold CV comparison.</p>
+    </div>
+    <div class="cards-grid">
+      <div class="card">
+        <div class="icon">01</div>
+        <h3>Life Expectancy</h3>
+        <p>Average number of years a newborn is expected to live, given current mortality patterns. A proxy for healthcare quality and living conditions.</p>
+      </div>
+      <div class="card">
+        <div class="icon">02</div>
+        <h3>Mean Years of Schooling</h3>
+        <p>The average number of years of education completed by adults aged 25 and older — a backward-looking measure of educational attainment.</p>
+      </div>
+      <div class="card">
+        <div class="icon">03</div>
+        <h3>Expected Years of Schooling</h3>
+        <p>The years of schooling a child entering school today can expect to receive — a forward-looking measure of access to education.</p>
+      </div>
+      <div class="card">
+        <div class="icon">04</div>
+        <h3>GNI per Capita</h3>
+        <p>Gross National Income per person, adjusted for purchasing power — a measure of the average material standard of living.</p>
+      </div>
+      <div class="card">
+        <div class="icon">05</div>
+        <h3>Gender Dev. Index</h3>
+        <p>Ratio of female to male HDI. A value of 1.0 indicates perfect gender equality; values below 1.0 indicate female disadvantage.</p>
+      </div>
+      <div class="card">
+        <div class="icon">06</div>
+        <h3>Gender Ineq. Index</h3>
+        <p>Measures loss of achievement due to gender inequality in reproductive health, empowerment, and labour market participation. Lower is better.</p>
+      </div>
+      <div class="card">
+        <div class="icon">07</div>
+        <h3>CO₂ per Capita</h3>
+        <p>Carbon dioxide emissions per person from fossil fuel production (tonnes). Adds an environmental sustainability dimension to the prediction.</p>
+      </div>
+      <div class="card">
+        <div class="icon">▤</div>
+        <h3>Auto Model Selection</h3>
+        <p>Linear Regression, Random Forest, and Gradient Boosting are compared with 5-fold cross-validation — the model with the best CV RMSE is automatically selected.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="how-it-works">
+  <div class="wrap">
+    <div class="section-head">
+      <p class="eyebrow">Under the Hood</p>
+      <h2>How a prediction is made</h2>
+      <p>The same pipeline used to train the model runs — in miniature — every time you submit the form below.</p>
+    </div>
+    <div class="workflow">
+      <div class="workflow-step">
+        <div class="num">1</div>
+        <h3>Wrangle the dataset</h3>
+        <p>The wide-format UNDP CSV (191 countries × 1990–2021) is melted into long format — one row per country-year — yielding thousands of training samples.</p>
+      </div>
+      <div class="workflow-step">
+        <div class="num">2</div>
+        <h3>Select 7 features</h3>
+        <p>Seven indicator columns are extracted per year: life expectancy, mean and expected schooling, GNI, GDI, GII, and CO₂. Rows with any missing value are dropped.</p>
+      </div>
+      <div class="workflow-step">
+        <div class="num">3</div>
+        <h3>Scale features</h3>
+        <p>A StandardScaler normalizes each indicator so no single feature — like GNI, which spans a much wider range than schooling — dominates the model.</p>
+      </div>
+      <div class="workflow-step">
+        <div class="num">4</div>
+        <h3>Compare &amp; select model</h3>
+        <p>Linear Regression, Random Forest, and Gradient Boosting are each evaluated with 5-fold CV. The algorithm achieving the lowest RMSE is selected and retrained on all training data.</p>
+      </div>
+      <div class="workflow-step">
+        <div class="num">5</div>
+        <h3>Predict and classify</h3>
+        <p>Your submitted values are scaled with the same fitted scaler, passed through the trained model, and the resulting score is mapped to a UNDP development category.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="predict-section" id="predict">
+  <div class="wrap">
+    <div class="predict-grid">
+      <div class="predict-intro">
+        <p class="eyebrow">Try the Model</p>
+        <h2>Predict an HDI score</h2>
+        <p>Enter plausible values for a country — real or hypothetical — and the model will return an estimated HDI score and its development category.</p>
+        <ul>
+          <li>All 7 values are validated before reaching the model.</li>
+          <li>The score is clamped to the valid 0–1 HDI range.</li>
+          <li>Results include interpretation and recommendation.</li>
+        </ul>
+
+        {% if model_info %}
+        <div class="active-model-info">
+          <p class="eyebrow" style="margin-bottom:6px;">Active Model</p>
+          <div class="model-stat-row">
+            <div class="model-stat">
+              <div class="model-stat-label">Algorithm</div>
+              <div class="model-stat-val">{{ model_info.model_name }}</div>
+            </div>
+            <div class="model-stat">
+              <div class="model-stat-label">Test R²</div>
+              <div class="model-stat-val">{{ "%.4f"|format(model_info.test_r2) }}</div>
+            </div>
+            <div class="model-stat">
+              <div class="model-stat-label">Test RMSE</div>
+              <div class="model-stat-val">{{ "%.5f"|format(model_info.test_rmse) }}</div>
+            </div>
+            <div class="model-stat">
+              <div class="model-stat-label">CV Folds</div>
+              <div class="model-stat-val">{{ model_info.cv_folds }}</div>
+            </div>
+          </div>
+        </div>
+        {% endif %}
+      </div>
+
+      <div class="form-card">
+        {% if error %}
+        <div class="error-banner">{{ error }}</div>
+        {% endif %}
+
+        <form action="/predict" method="POST" novalidate>
+
+          <!-- ── Core HDI indicators ── -->
+          <p class="form-group-label">Core HDI Indicators</p>
+
+          <div class="field">
+            <label for="life_expectancy">Life Expectancy <span class="hint">years (20–100)</span></label>
+            <input type="number" step="0.1" min="20" max="100"
+                   id="life_expectancy" name="life_expectancy"
+                   placeholder="e.g. 78.5" required>
+          </div>
+
+          <div class="field-row">
+            <div class="field">
+              <label for="mean_schooling">Mean Schooling <span class="hint">years (0–25)</span></label>
+              <input type="number" step="0.1" min="0" max="25"
+                     id="mean_schooling" name="mean_schooling"
+                     placeholder="e.g. 10.2" required>
+            </div>
+
+            <div class="field">
+              <label for="expected_schooling">Expected Schooling <span class="hint">years (0–25)</span></label>
+              <input type="number" step="0.1" min="0" max="25"
+                     id="expected_schooling" name="expected_schooling"
+                     placeholder="e.g. 15.0" required>
+            </div>
+          </div>
+
+          <div class="field">
+            <label for="gni">GNI per Capita <span class="hint">PPP $ (0–200,000)</span></label>
+            <input type="number" step="1" min="0" max="200000"
+                   id="gni" name="gni"
+                   placeholder="e.g. 25000" required>
+          </div>
+
+          <!-- ── Gender & environment indicators ── -->
+          <p class="form-group-label" style="margin-top: 20px;">Gender &amp; Environment Indicators</p>
+
+          <div class="field-row">
+            <div class="field">
+              <label for="gdi">Gender Dev. Index <span class="hint">0–2 (1 = equal)</span></label>
+              <input type="number" step="0.001" min="0" max="2"
+                     id="gdi" name="gdi"
+                     placeholder="e.g. 0.98" required>
+            </div>
+
+            <div class="field">
+              <label for="gii">Gender Ineq. Index <span class="hint">0–1 (0 = no inequality)</span></label>
+              <input type="number" step="0.001" min="0" max="1"
+                     id="gii" name="gii"
+                     placeholder="e.g. 0.15" required>
+            </div>
+          </div>
+
+          <div class="field">
+            <label for="co2">CO₂ Emissions per Capita <span class="hint">tonnes (0–60)</span></label>
+            <input type="number" step="0.01" min="0" max="60"
+                   id="co2" name="co2"
+                   placeholder="e.g. 4.5" required>
+          </div>
+
+          <button type="submit">Predict HDI Score</button>
+        </form>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="scenarios">
+  <div class="wrap">
+    <div class="section-head">
+      <p class="eyebrow">Reference Points</p>
+      <h2>Three example scenarios</h2>
+      <p>Illustrative country profiles across the development spectrum — useful for sanity-checking how the model responds to different inputs.</p>
+    </div>
+    <div class="scenario-grid">
+      <div class="scenario-card">
+        <span class="badge badge-vhigh">Very High HDI</span>
+        <p class="country">Advanced Economy</p>
+        <p class="score">~0.950 expected</p>
+        <div class="scenario-metrics">
+          <div class="row"><span>Life expectancy</span><span>82.5</span></div>
+          <div class="row"><span>Mean schooling</span><span>13.0</span></div>
+          <div class="row"><span>Expected schooling</span><span>18.0</span></div>
+          <div class="row"><span>GNI per capita</span><span>$65,000</span></div>
+          <div class="row"><span>GDI</span><span>0.99</span></div>
+          <div class="row"><span>GII</span><span>0.05</span></div>
+          <div class="row"><span>CO₂</span><span>8.0 t</span></div>
+        </div>
+        <button class="btn-use"
+          data-le="82.5" data-ms="13.0" data-es="18.0" data-gni="65000"
+          data-gdi="0.99" data-gii="0.05" data-co2="8.0"
+          onclick="fillForm(this)">↗ Use these values</button>
+      </div>
+
+      <div class="scenario-card">
+        <span class="badge badge-medium">Medium HDI</span>
+        <p class="country">Emerging Economy</p>
+        <p class="score">~0.630 expected</p>
+        <div class="scenario-metrics">
+          <div class="row"><span>Life expectancy</span><span>68.0</span></div>
+          <div class="row"><span>Mean schooling</span><span>8.0</span></div>
+          <div class="row"><span>Expected schooling</span><span>12.0</span></div>
+          <div class="row"><span>GNI per capita</span><span>$7,500</span></div>
+          <div class="row"><span>GDI</span><span>0.95</span></div>
+          <div class="row"><span>GII</span><span>0.40</span></div>
+          <div class="row"><span>CO₂</span><span>1.8 t</span></div>
+        </div>
+        <button class="btn-use"
+          data-le="68.0" data-ms="8.0" data-es="12.0" data-gni="7500"
+          data-gdi="0.95" data-gii="0.40" data-co2="1.8"
+          onclick="fillForm(this)">↗ Use these values</button>
+      </div>
+
+      <div class="scenario-card">
+        <span class="badge badge-low">Low HDI</span>
+        <p class="country">Developing Economy</p>
+        <p class="score">~0.410 expected</p>
+        <div class="scenario-metrics">
+          <div class="row"><span>Life expectancy</span><span>54.0</span></div>
+          <div class="row"><span>Mean schooling</span><span>2.5</span></div>
+          <div class="row"><span>Expected schooling</span><span>6.5</span></div>
+          <div class="row"><span>GNI per capita</span><span>$1,500</span></div>
+          <div class="row"><span>GDI</span><span>0.80</span></div>
+          <div class="row"><span>GII</span><span>0.65</span></div>
+          <div class="row"><span>CO₂</span><span>0.1 t</span></div>
+        </div>
+        <button class="btn-use"
+          data-le="54.0" data-ms="2.5" data-es="6.5" data-gni="1500"
+          data-gdi="0.80" data-gii="0.65" data-co2="0.1"
+          onclick="fillForm(this)">↗ Use these values</button>
+      </div>
+    </div>
+  </div>
+</section>
+
+<footer class="footer">
+  <div class="wrap">
+    <span>HDI Predictor — a Flask &amp; Scikit-learn portfolio project.</span>
+    <span>Built with Auto-Selected ML · UNDP Dataset · 7-Feature Pipeline</span>
+  </div>
+</footer>
+
+<script>
+  /* -----------------------------------------------------------------------
+     Scenario auto-fill
+  ----------------------------------------------------------------------- */
+  function fillForm(btn) {
+    document.getElementById('life_expectancy').value   = btn.dataset.le;
+    document.getElementById('mean_schooling').value    = btn.dataset.ms;
+    document.getElementById('expected_schooling').value = btn.dataset.es;
+    document.getElementById('gni').value               = btn.dataset.gni;
+    document.getElementById('gdi').value               = btn.dataset.gdi;
+    document.getElementById('gii').value               = btn.dataset.gii;
+    document.getElementById('co2').value               = btn.dataset.co2;
+
+    document.getElementById('predict').scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+</script>
+
+</body>
+</html>

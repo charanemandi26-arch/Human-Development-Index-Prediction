@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Prediction Result — HDI Predictor</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:wght@500;600&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+
+{% if category == "Very High Human Development" %}
+  {% set badge_class = "badge-vhigh" %}
+  {% set interpretation = "This profile places the country among the world's most developed nations, with strong outcomes across health, education, income, and gender equity working together rather than any single factor dominating." %}
+  {% set recommendation = "At this level, further HDI gains typically come from small, broad-based improvements — further increases in expected years of schooling, continued gains in life expectancy, and closing remaining gender gaps — rather than dramatic policy shifts." %}
+{% elif category == "High Human Development" %}
+  {% set badge_class = "badge-high" %}
+  {% set interpretation = "This profile reflects solid, above-average development, with reasonably strong health and education outcomes and a growing income base." %}
+  {% set recommendation = "Targeted investment in expected years of schooling, reducing the Gender Inequality Index, and continued income growth are usually the most direct paths toward the Very High tier from here." %}
+{% elif category == "Medium Human Development" %}
+  {% set badge_class = "badge-medium" %}
+  {% set interpretation = "This profile sits in the middle of the global distribution — meaningful progress has been made, but health, education, income, or gender equity (or some combination) still lag behind top performers." %}
+  {% set recommendation = "Identifying which single indicator is weakest relative to the others often reveals the highest-leverage area for policy attention. Reducing gender inequality typically yields compound benefits across multiple dimensions." %}
+{% else %}
+  {% set badge_class = "badge-low" %}
+  {% set interpretation = "This profile reflects significant development challenges, typically driven by a combination of lower life expectancy, limited access to schooling, low income per capita, and high gender inequality." %}
+  {% set recommendation = "Historically, sustained gains at this level come from long-term investment in primary and secondary education, basic healthcare infrastructure, and policies that improve women's access to education and employment." %}
+{% endif %}
+
+{# ── Nav bar (mirrors index.html) ── #}
+<nav class="nav">
+  <div class="wrap">
+    <a class="nav-brand" href="/">
+      <span class="dot"></span>
+      HDI Predictor
+    </a>
+    <ul class="nav-links">
+      <li><a href="/#what-is-hdi">What is HDI</a></li>
+      <li><a href="/#how-it-works">How it works</a></li>
+      <li><a href="/#scenarios">Examples</a></li>
+    </ul>
+    <a class="nav-cta" href="/#predict">New Prediction</a>
+    <button class="nav-hamburger" id="hamburger" aria-label="Toggle menu" aria-expanded="false">
+      <span></span><span></span><span></span>
+    </button>
+  </div>
+  <div class="nav-mobile-menu" id="mobile-menu" role="navigation" aria-label="Mobile navigation">
+    <a href="/#what-is-hdi">What is HDI</a>
+    <a href="/#how-it-works">How it works</a>
+    <a href="/#scenarios">Examples</a>
+    <a href="/#predict">New Prediction →</a>
+  </div>
+</nav>
+
+<div class="result-shell">
+  <div class="result-card">
+    <p class="eyebrow">Prediction Result</p>
+
+    <div class="result-top">
+      <div>
+        <p style="font-size:13px; color: var(--text-muted); margin-top: 10px;">Predicted HDI Score</p>
+        <p class="result-score">{{ "%.3f"|format(prediction) }}</p>
+      </div>
+      <span class="result-badge {{ badge_class }}">{{ category }}</span>
+    </div>
+
+    <div class="result-spectrum">
+      <div class="spectrum-bar" aria-hidden="true">
+        <div class="spectrum-marker" style="left: {{ (prediction * 100)|round(1) }}%;"></div>
+      </div>
+      <div class="spectrum-scale">
+        <span>0.00</span>
+        <span>0.55</span>
+        <span>0.70</span>
+        <span>0.80</span>
+        <span>1.00</span>
+      </div>
+    </div>
+
+    <!-- Input summary: Core indicators -->
+    <p class="inputs-group-label">Core HDI Indicators</p>
+    <div class="result-inputs">
+      <div class="item">
+        <div class="label">Life Expectancy</div>
+        <div class="value">{{ life_expectancy }} yrs</div>
+      </div>
+      <div class="item">
+        <div class="label">Mean Schooling</div>
+        <div class="value">{{ mean_schooling }} yrs</div>
+      </div>
+      <div class="item">
+        <div class="label">Expected Schooling</div>
+        <div class="value">{{ expected_schooling }} yrs</div>
+      </div>
+      <div class="item">
+        <div class="label">GNI per Capita</div>
+        <div class="value">${{ "{:,.0f}".format(gni) }}</div>
+      </div>
+    </div>
+
+    <!-- Input summary: Gender & environment indicators -->
+    <p class="inputs-group-label" style="margin-top: 16px;">Gender &amp; Environment Indicators</p>
+    <div class="result-inputs">
+      <div class="item">
+        <div class="label">Gender Dev. Index</div>
+        <div class="value">{{ "%.3f"|format(gdi) }}</div>
+      </div>
+      <div class="item">
+        <div class="label">Gender Ineq. Index</div>
+        <div class="value">{{ "%.3f"|format(gii) }}</div>
+      </div>
+      <div class="item">
+        <div class="label">CO₂ per Capita</div>
+        <div class="value">{{ co2 }} t</div>
+      </div>
+    </div>
+
+    {% if model_info %}
+    <div class="result-model-info">
+      <span class="result-model-label">Predicted by:</span>
+      <span class="result-model-name">{{ model_info.model_name }}</span>
+      <span class="result-model-sep">·</span>
+      <span class="result-model-metric">R² {{ "%.4f"|format(model_info.test_r2) }}</span>
+      <span class="result-model-sep">·</span>
+      <span class="result-model-metric">RMSE {{ "%.4f"|format(model_info.test_rmse) }}</span>
+    </div>
+    {% endif %}
+
+    <div class="result-block">
+      <h3>Interpretation</h3>
+      <p>{{ interpretation }}</p>
+    </div>
+
+    <div class="result-block">
+      <h3>Recommendation</h3>
+      <p>{{ recommendation }}</p>
+    </div>
+
+    <div class="result-actions">
+      <a class="btn btn-primary" href="/#predict">Predict Again</a>
+      <a class="btn btn-ghost" href="/" style="color: var(--text-primary); border-color: var(--line);">Home</a>
+    </div>
+  </div>
+</div>
+
+<script>
+  /* -----------------------------------------------------------------------
+     Hamburger mobile menu toggle
+  ----------------------------------------------------------------------- */
+  const hamburger  = document.getElementById('hamburger');
+  const mobileMenu = document.getElementById('mobile-menu');
+
+  if (hamburger && mobileMenu) {
+    hamburger.addEventListener('click', () => {
+      const isOpen = mobileMenu.classList.toggle('open');
+      hamburger.classList.toggle('open', isOpen);
+      hamburger.setAttribute('aria-expanded', String(isOpen));
+    });
+
+    mobileMenu.querySelectorAll('a').forEach(link => {
+      link.addEventListener('click', () => {
+        mobileMenu.classList.remove('open');
+        hamburger.classList.remove('open');
+        hamburger.setAttribute('aria-expanded', 'false');
+      });
+    });
+  }
+</script>
+
+</body>
+</html>
